@@ -1,0 +1,25 @@
+name: Windows RDP via Serveo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    steps:
+      - name: Enable RDP and Set Password
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "YourPass123!" -Force)
+
+      - name: Check SSH Client (Windows comes with it)
+        run: ssh -V
+
+      - name: Create SSH Reverse Tunnel to Serveo
+        run: |
+          # The -R flag forwards serveo’s random port to localhost:3389
+          # -o StrictHostKeyChecking=no avoids the host key prompt
+          # -N keeps the tunnel open without executing a remote command
+          ssh -o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net -N 2>&1
+        timeout-minutes: 300  # Keep it running for up to 5 hours
