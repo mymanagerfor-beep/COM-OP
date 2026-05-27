@@ -1,4 +1,4 @@
-name: Windows RDP – Reliable Fix
+name: Windows RDP – Reliable Fix (Corrected)
 
 on:
   workflow_dispatch:
@@ -9,31 +9,23 @@ jobs:
     steps:
       - name: Enable RDP and Configure Firewall
         run: |
-          # Enable RDP in the registry
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-          # Open firewall for RDP on ALL network profiles (critical)
           New-NetFirewallRule -DisplayName "Allow RDP All Profiles" -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow -Profile Any
-          # Also enable the built-in Remote Desktop firewall rule group (just in case)
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
       - name: Set User Password and Add to Groups
         run: |
           $password = ConvertTo-SecureString "YourPass123!" -AsPlainText -Force
           Set-LocalUser -Name "runneradmin" -Password $password
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "runneradmin"
-          Add-LocalGroupMember -Group "Administrators" -Member "runneradmin"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "runneradmin" -ErrorAction SilentlyContinue
+          Add-LocalGroupMember -Group "Administrators" -Member "runneradmin" -ErrorAction SilentlyContinue
 
       - name: Disable NLA and Restart Services
         run: |
-          # Turn off Network Level Authentication (NLA)
           Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'UserAuthentication' -Value 0
-          # Also set SecurityLayer to 0 (RDP security, no TLS-only enforcement)
           Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'SecurityLayer' -Value 0
-          # Restart the RDP service to apply all changes
           Restart-Service TermService -Force
-          # Wait a few seconds for the service to fully restart
           Start-Sleep -Seconds 10
-          # Verify the service is running
           Get-Service TermService | Format-List
 
       - name: Download bore
