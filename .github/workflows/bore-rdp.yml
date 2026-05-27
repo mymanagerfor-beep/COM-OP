@@ -1,0 +1,24 @@
+name: Windows RDP via Bore
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    steps:
+      - name: Enable RDP and Set Password
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "YourPass123!" -Force)
+
+      - name: Download bore.exe
+        run: |
+          # Download the latest bore Windows binary from GitHub releases
+          Invoke-WebRequest -Uri https://github.com/ekzhang/bore/releases/download/v0.5.2/bore-v0.5.2-x86_64-pc-windows-msvc.zip -OutFile bore.zip
+          Expand-Archive bore.zip -DestinationPath .
+
+      - name: Start bore tunnel to bore.pub
+        run: .\bore.exe local 3389 --to bore.pub
+        timeout-minutes: 300
